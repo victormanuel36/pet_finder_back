@@ -1,6 +1,8 @@
-const mongoose = require("mongoose")
+const mongoose = require("mongoose");
 const User = require("../models/users.model");
 const createError = require("http-errors");
+const bcrypt = require("../lib/bcrypt");
+
 
 
 async function getAll() {
@@ -9,6 +11,24 @@ async function getAll() {
 };
 
 async function create(userData) {
+    //validadr si un usuario existe
+    const existingUser = await User.findOne({ email: userData.email });
+
+    if (existingUser) {
+        throw new createError(412, "email already registered") 
+    }
+
+    const passwordRegex = new RegExp(
+        "^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$ %^&*-.+]).{8,}$"
+    );
+
+    if (!passwordRegex.test(userData.password)) {
+        throw new createError(400, "password too weak")
+    }
+
+    // guardar password
+    userData.password = bcrypt.encrypt(userData.password);
+
     const newuser = await User.create(userData);
     return newuser;
 
